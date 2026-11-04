@@ -1195,7 +1195,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 view.animate().cancel();
                 banner.animate().cancel();
                 name.animate().cancel();
-                float scale = !animations || (MOSAIC && "border".equals(FOCUS_FX)) ? 1f : MOSAIC
+                float scale = !animations || ((MOSAIC || SIDE_LIST) && "border".equals(FOCUS_FX)) ? 1f : MOSAIC
                         // grow by 70% of one gutter in total: each side moves less than half a gap
                         ? 1f + MosaicLayoutManager.gap(density) * 0.7f / Math.max(1, Math.max(view.getWidth(), view.getHeight()))
                         : SIDE_LIST ? 1.03f : CAROUSEL ? 1f : advancedEffects ? 1.12f : 1.10f;

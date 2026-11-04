@@ -190,6 +190,9 @@ final class CustomizePanel {
         column.addView(row("Layout", layouts, lay, CustomizePanel::layoutKeys));
         boolean mosaic = lay == 1 || lay == 2, dockGrid = lay == 0 || lay == 3, single = lay == 6;
         boolean carouselLay = lay == 4, sideListLay = lay == 5;
+        // Layouts that show focus with Home's floating highlight, and those that draw a ring on the card itself
+        boolean glassLay = lay == 0 || lay == 3 || lay == 6 || lay == 7;
+        boolean ringLay = mosaic || carouselLay || sideListLay;
         if (mosaic) {
             List<String[]> apps = homeApps();
             String hero = cfg.optString("mosaic_hero", "");
@@ -204,32 +207,32 @@ final class CustomizePanel {
                     i -> ConfigWriter.keys("mosaic_hero", i == 0 ? "" : apps.get(i - 1)[0])));
         }
         int[] cols = {4, 5, 6, 7};
-        if (!mosaic && !sideListLay && !carouselLay) column.addView(row("Apps per row", new String[]{"4", "5", "6", "7"}, indexOf(cols, cfg.optInt("columns", 4), 0),
+        if (glassLay) column.addView(row("Apps per row", new String[]{"4", "5", "6", "7"}, indexOf(cols, cfg.optInt("columns", 4), 0),
                 i -> ConfigWriter.keys("columns", cols[i])));
         if (dockGrid) column.addView(row("Rows under dock", new String[]{"0", "1", "2", "3"}, clamp(cfg.optInt("rows_below_dock", 0), 3),
                 i -> ConfigWriter.keys("rows_below_dock", i)));
         int dock = !cfg.optBoolean("dock_band", true) ? 2 : cfg.optBoolean("dock_glass", false) ? 0 : 1;
-        if (dockGrid || single || carouselLay) column.addView(row("Dock", new String[]{"Glass", "Solid", "Floating"}, dock, i ->
+        if (dockGrid || single) column.addView(row("Dock", new String[]{"Glass", "Solid", "Floating"}, dock, i ->
                 i == 0 ? ConfigWriter.keys("dock_band", true, "dock_glass", true)
                         : i == 1 ? ConfigWriter.keys("dock_band", true, "dock_glass", false)
                         : ConfigWriter.keys("dock_band", false, "dock_glass", false)));
-        if (!mosaic && !sideListLay) column.addView(row("Tiles", new String[]{"App banners", "Icon cards"}, cfg.optBoolean("uniform_tiles", false) ? 1 : 0,
+        if (glassLay || carouselLay) column.addView(row("Tiles", new String[]{"App banners", "Icon cards"}, cfg.optBoolean("uniform_tiles", false) ? 1 : 0,
                 i -> ConfigWriter.keys("uniform_tiles", i == 1)));
-        if (!mosaic && !sideListLay) column.addView(row("Labels", new String[]{"On focus", "Always"}, cfg.optBoolean("always_show_names", false) ? 1 : 0,
+        if (glassLay) column.addView(row("Labels", new String[]{"On focus", "Always"}, cfg.optBoolean("always_show_names", false) ? 1 : 0,
                 i -> ConfigWriter.keys("always_show_names", i == 1)));
         String gs = cfg.optString("glass_style", "glass");
-        if (!mosaic && !sideListLay && !carouselLay) column.addView(row("Highlight", new String[]{"Glass", "Rim", "Halo"},
+        if (glassLay) column.addView(row("Highlight", new String[]{"Glass", "Rim", "Halo"},
                 "rim".equals(gs) ? 1 : "halo".equals(gs) ? 2 : 0,
                 i -> ConfigWriter.keys("glass_style", i == 1 ? "rim" : i == 2 ? "halo" : "glass")));
         String fx = cfg.optString("focus_effect", "zoom");
         // Pulse and border-only work on the mosaic's own ring; the other layouts offer zoom and shine
-        String[] fxKeys = mosaic ? new String[]{"zoom", "shine", "pulse", "border"} : new String[]{"zoom", "shine"};
-        String[] fxNames = mosaic ? new String[]{"Gentle zoom", "Zoom + shine", "Zoom + pulse", "Border only"}
+        String[] fxKeys = ringLay ? new String[]{"zoom", "shine", "pulse", "border"} : new String[]{"zoom", "shine"};
+        String[] fxNames = ringLay ? new String[]{"Gentle zoom", "Zoom + shine", "Zoom + pulse", "Border only"}
                 : new String[]{"Gentle zoom", "Zoom + shine"};
         column.addView(row("Focus effect", fxNames,
                 Math.max(0, java.util.Arrays.asList(fxKeys).indexOf(fx)),
                 i -> ConfigWriter.keys("focus_effect", fxKeys[i])));
-        if (mosaic) column.addView(row("Border colour", new String[]{"White", "App colour"},
+        if (ringLay) column.addView(row("Border colour", new String[]{"White", "App colour"},
                 "app".equals(cfg.optString("border_color", "white")) ? 1 : 0,
                 i -> ConfigWriter.keys("border_color", i == 1 ? "app" : "white")));
         String ent = cfg.optString("entrance", "off");
@@ -259,7 +262,7 @@ final class CustomizePanel {
         column.addView(row("System stats", new String[]{"Show", "Hide"}, cfg.optBoolean("show_stats", false) ? 0 : 1,
                 i -> ConfigWriter.keys("show_stats", i == 0)));
         boolean anim = cfg.optBoolean("animations", true);
-        if (mosaic) {
+        if (ringLay) {
             // The mosaic has no bounce or lift to tune: motion is on or off
             column.addView(row("Motion", new String[]{"On", "Off"}, anim ? 0 : 1,
                     i -> ConfigWriter.keys("animations", i == 0)));
