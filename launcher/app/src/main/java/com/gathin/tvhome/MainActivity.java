@@ -718,12 +718,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
         });
-        if (grid.getLayoutManager() instanceof GridLayoutManager)
-        ((GridLayoutManager) grid.getLayoutManager()).setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-            @Override public int getSpanSize(int position) {
-                return !singleRow && adapter != null && adapter.isLibraryAt(position) ? COLUMNS : 1;
-            }
-        });
+        if (grid.getLayoutManager() instanceof GridLayoutManager) {   // the mosaic places its own tiles
+            ((GridLayoutManager) grid.getLayoutManager()).setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override public int getSpanSize(int position) {
+                    return !singleRow && adapter != null && adapter.isLibraryAt(position) ? COLUMNS : 1;
+                }
+            });
+        }
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
         // Tiles that scroll out while one is carried come back from the view cache without a rebind; set their

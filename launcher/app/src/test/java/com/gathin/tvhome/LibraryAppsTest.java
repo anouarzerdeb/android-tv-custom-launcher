@@ -79,7 +79,8 @@ public class LibraryAppsTest {
         assertFalse(LibraryApps.visible(true, true, false));
         assertFalse(LibraryApps.visible(false, false, false));
         assertTrue(LibraryApps.visible(false, false, true));
-        assertTrue(LibraryApps.visible(true, true, true));
+        // hidden_apps wins over an App-library add: those apps open from Customize > Tools instead
+        assertFalse(LibraryApps.visible(true, true, true));
     }
 
     @Test public void undoingAnAdditionRestoresDefaultVisibilityAndKeepsOtherChoices() {

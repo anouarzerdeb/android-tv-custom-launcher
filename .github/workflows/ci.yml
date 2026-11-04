@@ -70,4 +70,5 @@ jobs:
         run: |
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
           echo "release APK: $((size / 1024)) KB"
-          test "$size" -lt 589824 || { echo "APK is over 576 KB; the launcher targets 1 GB TVs, keep it small"; exit 1; }
+          # This fork bundles rive-android (animated weather icon), so its limit is 10 MB instead of 576 KB
+          test "$size" -lt 10485760 || { echo "APK is over 10 MB; the launcher targets 1-2 GB TVs, keep it small"; exit 1; }
