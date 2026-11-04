@@ -1,0 +1,56 @@
+# Xiaomi TV Box S 3rd gen (MiTV-AFMU0, twilight, Amlogic S905X5M), Google TV / Android 14
+# Based on tv-vibehack examples/xiaomi-mitv-afmu0/debloat.txt. Disabled with pm disable-user --user 0.
+# Undo: .\restore.ps1
+# NOT disabled on purpose: com.google.android.tungsten.setupwraith (owns the saved Wi-Fi network -
+# disabling it deletes the network and the box goes offline). Re-join Wi-Fi in Settings first if ever needed.
+
+# --- batch A (2026-11-02): telemetry and feedback
+com.miui.tv.analytics
+com.xiaomi.statistic
+com.xiaomi.tvqs.overseas.y24
+com.google.android.feedback
+com.android.tv.feedbackconsent
+
+# --- batch B (2026-11-02): Xiaomi PatchWall / content rows / promos / auto-installs
+com.mitv.tvhome.atv
+com.mitv.tvhome.michannel
+com.mitv.tvhome.mitvplus
+com.mitv.tvhome.oemtab
+com.xm.webcontent
+android.autoinstalls.config.soc.amlogic
+
+# --- batch C (2026-11-02): media apps + extras (owner's choice)
+com.xiaomi.mimusic2
+com.xiaomi.mitv.mediaexplorer
+com.mitv.videoplayer
+com.mitv.gallery
+com.google.android.youtube.tvmusic
+com.google.android.play.games
+com.google.android.marvin.talkback
+com.android.printspooler
+
+# --- batch D (2026-11-02): Mi cast / Miracast / Mi Connect (owner's choice)
+com.xiaomi.mitv.smartshare
+com.xiaomi.wfdsinkhelperservice
+com.xiaomi.mi_connect_service
+
+# --- batch E (2026-11-02): streaming apps not used (owner keeps Netflix + YouTube)
+com.amazon.amazonvideo.livingroom
+
+# --- UNINSTALLED 2026-11-02 at the owner's request (reinstall from the Play Store if wanted):
+# com.disney.disneyplus, de.swr.avp.ard.tv (ARD), com.zdf.android.mediathek (ZDF),
+# de.prosiebensat1digital.seventv (Joyn), tv.arte.plus7 (arte)
+
+# --- pending: com.google.android.apps.tv.dreamx (after the launcher's clock screensaver is set)
+
+# --- launcher swap (2026-11-02), after Wi-Fi was re-joined by hand (now owned by android.uid.system)
+com.google.android.tungsten.setupwraith      # setup wizard; re-enable to re-pair the remote
+com.google.android.apps.tv.dreamx            # Google ambient screensaver, replaced by com.gathin.tvhome/.ClockDream
+# com.google.android.apps.tv.launcherx is disabled too; restore.ps1 re-enables it and sets it as Home
+
+# --- other changes 2026-11-02 (undo by hand):
+#   Private DNS: settings put global private_dns_mode opportunistic   (was unset)
+#   Accessibility: com.gathin.tvhome/.HomeKeyService + io.github.luyzfernando08.sleeptimer/.SleepService
+#     undo: settings put secure enabled_accessibility_services ''
+#   Add-ons installed: io.github.sumyabazar1.weather, io.github.luyzfernando08.sleeptimer,
+#     io.github.savioronezero.worldclock (pm uninstall <pkg> to remove)

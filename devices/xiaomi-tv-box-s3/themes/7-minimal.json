@@ -1,0 +1,21 @@
+{
+  "dock_row": true,
+  "single_row": false,
+  "cinematic_home": false,
+  "cinematic_scrim": 100,
+  "columns": 4,
+  "rows_below_dock": 0,
+  "dock_title": false,
+  "dock_band": false,
+  "dock_glass": false,
+  "glass_style": "rim",
+  "uniform_tiles": false,
+  "always_show_names": false,
+  "fade_rows": false,
+  "show_greeting": false,
+  "focus_overshoot": false,
+  "advanced_effects": false,
+  "glow_style": "radial",
+  "date_below_clock": true,
+  "mosaic": false
+}

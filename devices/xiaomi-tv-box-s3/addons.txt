@@ -1,0 +1,14 @@
+# Helper apps used on this box. They open from Customize > Tools (Tools.java) and are listed in
+# hidden_apps and library_excluded_apps in config.json, so they stay off Home and the App library.
+io.github.sumyabazar1.weather        Weather (forecast)
+io.github.luyzfernando08.sleeptimer  Sleep timer
+io.github.savioronezero.worldclock   World clock
+io.github.maxhayim.headphones        Headphones (audio output)
+com.gathin.btconnect                 Bluetooth speakers and headphones
+io.github.maxhayim.quiethours        Quiet hours (night volume)
+io.github.maxhayim.brightness        Brightness and night mode
+io.github.luyzfernando08.wakeapp     Open an app on wake
+io.github.maxhayim.remoteaccess      Remote access (network debugging)
+org.localsend.localsend_app          LocalSend (receive files)        - Play Store
+io.github.sds100.keymapper           Key Mapper (remote buttons)      - Play Store
+com.neilturner.aerialviews           Aerial Views (screensaver)       - Play Store
