@@ -1108,6 +1108,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         iconLp.gravity = android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL;
         iconLp.setMargins(Math.round(18 * density), 0, 0, 0);
         h.icon.setLayoutParams(iconLp);
+        applyRing(h, entry, cornerRadius(Integer.MAX_VALUE, density), density);   // exactly on the row's edge
     }
 
     /** The focused app's logo, for the side list's preview. */

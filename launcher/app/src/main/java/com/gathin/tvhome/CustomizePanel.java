@@ -204,7 +204,7 @@ final class CustomizePanel {
                     i -> ConfigWriter.keys("mosaic_hero", i == 0 ? "" : apps.get(i - 1)[0])));
         }
         int[] cols = {4, 5, 6, 7};
-        if (!mosaic && !sideListLay) column.addView(row("Apps per row", new String[]{"4", "5", "6", "7"}, indexOf(cols, cfg.optInt("columns", 4), 0),
+        if (!mosaic && !sideListLay && !carouselLay) column.addView(row("Apps per row", new String[]{"4", "5", "6", "7"}, indexOf(cols, cfg.optInt("columns", 4), 0),
                 i -> ConfigWriter.keys("columns", cols[i])));
         if (dockGrid) column.addView(row("Rows under dock", new String[]{"0", "1", "2", "3"}, clamp(cfg.optInt("rows_below_dock", 0), 3),
                 i -> ConfigWriter.keys("rows_below_dock", i)));

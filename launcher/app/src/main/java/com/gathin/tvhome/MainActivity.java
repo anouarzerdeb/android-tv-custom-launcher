@@ -513,6 +513,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             COLUMNS = 1;      // one column of rows
             dockRow = false;
         }
+        if (carousel) COLUMNS = 3;   // big cards: three fit across, the middle one grows
         focusOvershoot = cfg.focusOvershoot;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
@@ -549,7 +550,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
         // Mosaic draws its focus ring on the card itself (AppAdapter.sizeForMosaic); no floating highlight.
-        if (mosaic || carousel) glass.setVisibility(View.GONE);   // the card's own ring shows focus
+        if (mosaic || carousel || sideList) glass.setVisibility(View.GONE);   // the card's own ring shows focus
         glass.setStyle(cfg.glassStyle);
         if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
