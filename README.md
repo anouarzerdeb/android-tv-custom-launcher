@@ -8,6 +8,7 @@ licence, kept in `LICENSE`). Everything below the line is the original project's
 
 **What this fork adds** to the launcher (`launcher/`):
 
+- **Eight layouts**: Mosaic, Two big cards, Cinematic, Carousel, Side list, Dock + grid, Single row and Grid.
 - **Mosaic layout** with a big card, centred logos, readable titles on light and dark cards, a smooth
   focus ring, shine or pulse effects and an opening animation.
 - **Customize sidebar** (brush button) that rebuilds Home live and only shows the options that apply to

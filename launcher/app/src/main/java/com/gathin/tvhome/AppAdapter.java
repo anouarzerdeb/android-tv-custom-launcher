@@ -922,6 +922,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static String ENTRANCE = "off";
     /** Theme key "mosaic_hero": the package that takes the mosaic's big first card; empty keeps the usual order. */
     static String HERO = "";
+    /** Theme key "carousel" (single row): the focused tile in the middle, biggest; Home scales the others. */
+    static boolean CAROUSEL;
+    /** Theme key "side_list": one column of wide rows on the left, a preview of the focused app on the right. */
+    static boolean SIDE_LIST;
     private final long bornAt = android.os.SystemClock.uptimeMillis();
     private final java.util.Set<Integer> entered = new HashSet<>();
 
@@ -975,6 +979,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                                  @NonNull java.util.List<Object> payloads) {
         super.onBindViewHolder(holder, position, payloads);
         if (MOSAIC && !isLibraryAt(position) && holder instanceof Holder) sizeForMosaic((Holder) holder, position);
+        if (SIDE_LIST && !isLibraryAt(position) && holder instanceof Holder) sizeForSideList((Holder) holder, position);
+        if (CAROUSEL && !isLibraryAt(position) && holder instanceof Holder) {
+            Holder h = (Holder) holder;
+            float density = h.itemView.getResources().getDisplayMetrics().density;
+            float r = cornerRadius(Math.max(1, h.card.getLayoutParams().width), density);
+            applyRing(h, position < items.size() ? items.get(position) : null, r, density);
+            h.name.setVisibility(View.GONE);   // the big name above the row already says which app this is
+        }
         playEntrance(holder.itemView, position);
     }
 
@@ -1002,7 +1014,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         cardLp.setMargins(0, 0, 0, 0);
         h.card.setLayoutParams(cardLp);
         h.name.setVisibility(View.GONE);
-        boolean hero = position == 0;
+        boolean hero = MosaicLayoutManager.isBig(position);
         // Title: bottom-left inside the card, on a soft fade (white text stays >= 4.5:1 on any card colour)
         h.label.setText(labelAt(position));
         h.label.setVisibility(View.VISIBLE);
@@ -1035,14 +1047,19 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.icon.setLayoutParams(iconLp);
         h.banner.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
         // Focus ring drawn on the card's own edge: same size, same 16dp corners, can never drift off the card
+        applyRing(h, entry, 6 * density, density);
+    }
+
+    /** The focus ring on the card's own edge: a white (or app-coloured) line with a dark one just inside it. */
+    private void applyRing(Holder h, Entry entry, float radius, float density) {
         if (android.os.Build.VERSION.SDK_INT >= 23) {
             android.graphics.drawable.GradientDrawable outer = new android.graphics.drawable.GradientDrawable();
-            outer.setCornerRadius(6 * density);
+            outer.setCornerRadius(radius);
             outer.setColor(0x00000000);
             int ringColor = BRAND_RING && entry != null && entry.ambient != 0 ? vivid(entry.ambient) : 0xFFFFFFFF;
             outer.setStroke(Math.round(3 * density), ringColor);
             android.graphics.drawable.GradientDrawable innerLine = new android.graphics.drawable.GradientDrawable();
-            innerLine.setCornerRadius(4 * density);
+            innerLine.setCornerRadius(Math.max(0f, radius - 2 * density));
             innerLine.setColor(0x00000000);
             innerLine.setStroke(Math.max(1, Math.round(1.5f * density)), 0xCC0E1320);
             android.graphics.drawable.LayerDrawable ring = new android.graphics.drawable.LayerDrawable(
@@ -1055,6 +1072,54 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.card.setForeground(fg);
             h.ring = ring;
         }
+    }
+
+    /** Side list: a wide row, logo at the start and the name beside it, readable on light and dark cards. */
+    private void sizeForSideList(Holder h, int position) {
+        View item = h.itemView;
+        float density = item.getResources().getDisplayMetrics().density;
+        item.setPadding(0, Math.round(5 * density), 0, Math.round(5 * density));
+        ViewGroup.MarginLayoutParams cardLp = (ViewGroup.MarginLayoutParams) h.card.getLayoutParams();
+        cardLp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        cardLp.height = Math.round(62 * density);
+        cardLp.setMargins(0, 0, 0, 0);
+        h.card.setLayoutParams(cardLp);
+        h.name.setVisibility(View.GONE);
+        Entry entry = position < items.size() ? items.get(position) : null;
+        int bottom = entry != null && entry.backdrop != null && entry.backdrop.length > 0
+                ? entry.backdrop[entry.backdrop.length - 1] : 0xFF1E1E1E;
+        double lum = (0.299 * ((bottom >> 16) & 255) + 0.587 * ((bottom >> 8) & 255) + 0.114 * (bottom & 255)) / 255.0;
+        h.label.setText(labelAt(position));
+        h.label.setVisibility(View.VISIBLE);
+        h.label.setBackground(null);
+        h.label.setSingleLine(true);
+        h.label.setGravity(android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
+        h.label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 17);
+        h.label.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+        h.label.setTextColor(lum > 0.6 ? 0xFF111418 : 0xFFFFFFFF);
+        h.label.setShadowLayer(0, 0, 0, 0);
+        h.label.setPadding(Math.round(74 * density), 0, Math.round(16 * density), 0);
+        android.widget.FrameLayout.LayoutParams labelLp = (android.widget.FrameLayout.LayoutParams) h.label.getLayoutParams();
+        labelLp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        labelLp.gravity = android.view.Gravity.CENTER_VERTICAL;
+        h.label.setLayoutParams(labelLp);
+        android.widget.FrameLayout.LayoutParams iconLp = (android.widget.FrameLayout.LayoutParams) h.icon.getLayoutParams();
+        iconLp.width = iconLp.height = Math.round(40 * density);
+        iconLp.gravity = android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL;
+        iconLp.setMargins(Math.round(18 * density), 0, 0, 0);
+        h.icon.setLayoutParams(iconLp);
+    }
+
+    /** The focused app's logo, for the side list's preview. */
+    Drawable previewAt(int position) {
+        if (position < 0 || position >= items.size()) return null;
+        Entry e = items.get(position);
+        return e.icon != null ? e.icon : e.banner;
+    }
+
+    /** The focused app's card colours, top and bottom; null until sampled. */
+    int[] backdropAt(int position) {
+        return position < 0 || position >= items.size() ? null : items.get(position).backdrop;
     }
 
     static final class Holder extends RecyclerView.ViewHolder {
@@ -1132,7 +1197,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 float scale = !animations || (MOSAIC && "border".equals(FOCUS_FX)) ? 1f : MOSAIC
                         // grow by 70% of one gutter in total: each side moves less than half a gap
                         ? 1f + MosaicLayoutManager.gap(density) * 0.7f / Math.max(1, Math.max(view.getWidth(), view.getHeight()))
-                        : advancedEffects ? 1.12f : 1.10f;
+                        : SIDE_LIST ? 1.03f : CAROUSEL ? 1f : advancedEffects ? 1.12f : 1.10f;
                 float s = focused ? scale : 1f;
                 if (!animations) {
                     view.setScaleX(1f);

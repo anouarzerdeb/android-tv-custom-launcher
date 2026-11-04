@@ -15,7 +15,8 @@ Google TV devices work the same way; only `debloat.txt` is specific to this mode
 - **Clean Home**: the custom launcher **Custom TV Home** (`launcher/`, app id `com.anouarzerdeb.tvhome`) as Home, with the Google TV home, PatchWall, ads and
   telemetry switched off (disabled, never uninstalled, so everything can be undone).
 - **Customize sidebar** (the brush button, top right): every option changes Home live behind it.
-  - Layouts: Mosaic, Dock + grid, Single row, Grid; each shows only the settings that apply to it.
+  - Layouts: Mosaic, Two big cards, Cinematic, Carousel (selected card big in the middle), Side list
+    (list with a large preview), Dock + grid, Single row, Grid; each shows only the settings that apply to it.
   - Background: live video, photos, night sky or black; change interval, dim, and *Background by time*
     (photos and videos sorted by brightness into morning, evening and night).
   - Mosaic: big card choice, focus effect (zoom, shine, pulse, border only), border in the app's colour,

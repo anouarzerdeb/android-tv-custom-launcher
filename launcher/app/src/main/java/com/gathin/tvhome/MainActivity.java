@@ -216,6 +216,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean showStats;
     /** Theme key "mosaic": tiles of several sizes on a 12-span grid (AppAdapter.mosaicSpan). */
     private boolean mosaic;
+    /** Theme key "carousel" with single_row: the focused tile sits in the middle, biggest (AppAdapter.CAROUSEL). */
+    private boolean carousel;
+    /** Theme key "side_list": the apps as a list on the left, the focused one previewed large on the right. */
+    private boolean sideList;
+    private View sidePanel;
+    private ImageView sideIcon;
+    private TextView sideName;
     /** A city is chosen in Launcher settings: its weather leads the line under the clock. */
     private boolean weatherOn;
     /** config.xml inputs_connected_only: the Inputs menu lists only connected inputs, the rest behind "More inputs". */
@@ -497,6 +504,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Mosaic: the big first tiles are the dock; no separate band
         dockRow = cfg.dockRow && !mosaic;
         singleRow = cfg.singleRow;
+        MosaicLayoutManager.TWIN = mosaic && "twin".equals(mosaicCfg.optString("mosaic_style", ""));
+        carousel = singleRow && mosaicCfg != null && mosaicCfg.optBoolean("carousel", false);
+        sideList = !mosaic && !singleRow && mosaicCfg != null && mosaicCfg.optBoolean("side_list", false);
+        AppAdapter.CAROUSEL = carousel;
+        AppAdapter.SIDE_LIST = sideList;
+        if (sideList) {
+            COLUMNS = 1;      // one column of rows
+            dockRow = false;
+        }
         focusOvershoot = cfg.focusOvershoot;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
@@ -533,7 +549,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
         // Mosaic draws its focus ring on the card itself (AppAdapter.sizeForMosaic); no floating highlight.
-        if (mosaic) glass.setVisibility(View.GONE);
+        if (mosaic || carousel) glass.setVisibility(View.GONE);   // the card's own ring shows focus
         glass.setStyle(cfg.glassStyle);
         if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
@@ -686,6 +702,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public boolean requestChildRectangleOnScreen(@NonNull RecyclerView parent, @NonNull View child,
                                                          @NonNull Rect rect, boolean immediate,
                                                          boolean focusedChildVisible) {
+                if (singleRow && carousel) {
+                    // Carousel: the focused tile always comes to the middle of the row
+                    int dx = (child.getLeft() + child.getRight()) / 2 - getWidth() / 2;
+                    if (dx == 0) return false;
+                    if (immediate || reducedMotion || !animations) parent.scrollBy(dx, 0);
+                    else parent.smoothScrollBy(dx, 0, new android.view.animation.DecelerateInterpolator(1.6f));
+                    return true;
+                }
                 if (singleRow) {
                     // Sideways: scroll just enough to bring the tile's cell inside the padding. Cells are a
                     // column wide, so the row moves a whole tile at a time and the tiles stay on the columns.
@@ -725,6 +749,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             });
         }
+        if (carousel) setUpCarousel();
+        if (sideList) setUpSideList();
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
         // Tiles that scroll out while one is carried come back from the view cache without a rebind; set their
@@ -1911,6 +1937,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onTileFocused(int position, View card) {
         lastFocused = position;
+        if (sideList) updateSidePreview(position);
         lastFocusedKey = adapter.keyAt(position);
         // Focus restored before the first layout (cold start): the tile has no size yet, and the glass
         // would be sized to 2*pad. Run again once the tile is laid out.
@@ -2560,6 +2587,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
+        // Side list: one column; Left and Right have nowhere to go (the preview is not a tile)
+        if (sideList && (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)) return true;
         // Mosaic rows hold different numbers of tiles: let the platform's geometric focus search move, but stop at
         // the mosaic's edges instead of leaping to the top bar or across the screen. Up still reaches the bar.
         if (mosaic) {
@@ -3213,6 +3242,121 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 break;
             default:
                 break;
+        }
+    }
+
+    /** Carousel: padding so the first and last tiles can reach the middle, and the scale that follows the scroll. */
+    private void setUpCarousel() {
+        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                scaleCarousel();
+            }
+        });
+        // Room before the first tile and after the last so both can reach the middle. An offset, not padding:
+        // the tiles' width comes from the row's inner width, and padding would shrink every tile made after it.
+        grid.addItemDecoration(new RecyclerView.ItemDecoration() {
+            @Override
+            public void getItemOffsets(@NonNull Rect out, @NonNull View view, @NonNull RecyclerView rv,
+                                       @NonNull RecyclerView.State state) {
+                int pos = rv.getChildAdapterPosition(view);
+                int count = state.getItemCount();
+                if (pos != 0 && pos != count - 1) return;
+                int cell = view.getLayoutParams() != null && view.getLayoutParams().width > 0
+                        ? view.getLayoutParams().width : rv.getWidth() / Math.max(1, COLUMNS);
+                int side = Math.max(0, rv.getWidth() / 2 - cell / 2 - rv.getPaddingLeft());
+                if (pos == 0) out.left = side;
+                if (pos == count - 1) out.right = side;
+            }
+        });
+        grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> scaleCarousel());
+    }
+
+    /** Each tile grows as it nears the middle: biggest there, smaller and fainter towards the edges. */
+    private void scaleCarousel() {
+        float mid = grid.getWidth() / 2f;
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View c = grid.getChildAt(i);
+            if (c.getWidth() == 0) continue;
+            float d = Math.min(1f, Math.abs((c.getLeft() + c.getRight()) / 2f - mid) / (c.getWidth() * 2.2f));
+            float s = 1.22f - 0.4f * d;
+            c.setPivotX(c.getWidth() / 2f);
+            c.setPivotY(c.getHeight() * 0.42f);
+            c.setScaleX(s);
+            c.setScaleY(s);
+            c.setAlpha(1f - 0.5f * d);
+            c.setTranslationZ(s * 4f);
+        }
+    }
+
+    /** Side list: the list narrows to the left and a preview panel takes the right. */
+    private void setUpSideList() {
+        int w = getResources().getDisplayMetrics().widthPixels;
+        FrameLayout wrap = (FrameLayout) grid.getParent();
+        FrameLayout.LayoutParams glp = (FrameLayout.LayoutParams) grid.getLayoutParams();
+        glp.width = Math.round(w * 0.38f);
+        glp.gravity = Gravity.START;
+        grid.setLayoutParams(glp);
+        FrameLayout panel = new FrameLayout(this);
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(18 * density);
+        bg.setColor(0x55101420);
+        panel.setBackground(bg);
+        panel.setClipToOutline(true);
+        panel.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        sideIcon = new ImageView(this);
+        sideIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int logo = Math.round(170 * density);
+        panel.addView(sideIcon, new FrameLayout.LayoutParams(logo, logo, Gravity.CENTER));
+        sideName = new TextView(this);
+        sideName.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 38);
+        sideName.setTypeface(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL));
+        int pad = Math.round(30 * density);
+        sideName.setPadding(pad, pad, pad, Math.round(24 * density));
+        panel.addView(sideName, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START));
+        FrameLayout.LayoutParams plp = new FrameLayout.LayoutParams(Math.round(w * 0.47f),
+                ViewGroup.LayoutParams.MATCH_PARENT, Gravity.END);
+        plp.setMargins(0, Math.round(14 * density), Math.round(56 * density), Math.round(44 * density));
+        wrap.addView(panel, plp);
+        sidePanel = panel;
+        // Sized from the area the list really has (the screen minus Home's side margins), once it is laid out:
+        // the list takes 40 %, a gap, and the preview the rest, so neither runs under the other.
+        wrap.post(() -> {
+            int area = wrap.getWidth();
+            if (area <= 0) return;
+            int gap = Math.round(28 * density);
+            FrameLayout.LayoutParams g = (FrameLayout.LayoutParams) grid.getLayoutParams();
+            g.width = Math.round(area * 0.40f);
+            grid.setLayoutParams(g);
+            FrameLayout.LayoutParams pl = (FrameLayout.LayoutParams) panel.getLayoutParams();
+            pl.width = area - g.width - gap - Math.round(10 * density);
+            pl.rightMargin = Math.round(10 * density);
+            panel.setLayoutParams(pl);
+        });
+    }
+
+    /** The preview: the focused app's own colours, its logo large in the middle and its name at the bottom. */
+    private void updateSidePreview(int position) {
+        if (sidePanel == null || adapter == null || adapter.isLibraryAt(position)) return;
+        int[] bd = adapter.backdropAt(position);
+        android.graphics.drawable.GradientDrawable bg = (android.graphics.drawable.GradientDrawable) sidePanel.getBackground();
+        int bottom = 0xFF1E1E1E;
+        if (bd != null && bd.length > 0) {
+            bottom = bd[bd.length - 1];
+            bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
+            bg.setColors(bd.length > 1 ? bd : new int[]{bd[0], bd[0]});
+        } else {
+            bg.setColor(0x55101420);
+        }
+        double lum = (0.299 * ((bottom >> 16) & 255) + 0.587 * ((bottom >> 8) & 255) + 0.114 * (bottom & 255)) / 255.0;
+        sideName.setTextColor(lum > 0.6 ? 0xFF111418 : 0xFFFFFFFF);
+        sideIcon.setImageDrawable(adapter.previewAt(position));
+        sideName.setText(adapter.labelAt(position));
+        if (animations && !reducedMotion) {
+            sidePanel.animate().cancel();
+            sidePanel.setAlpha(0.55f);
+            sidePanel.animate().alpha(1f).setDuration(220).start();
         }
     }
 

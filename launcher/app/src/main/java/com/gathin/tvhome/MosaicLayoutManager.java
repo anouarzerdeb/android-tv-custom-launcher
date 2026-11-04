@@ -17,6 +17,18 @@ final class MosaicLayoutManager extends RecyclerView.LayoutManager {
     static final int COLS = 6;
     /** Tiles 0-9 fill the first three rows (the big tile's pattern), which fit one screen. */
     static final int FIRST_SCREEN = 10;
+    /** Theme key "mosaic_style": "twin" puts two big cards side by side on top, then rows of six (set by Home). */
+    static boolean TWIN;
+
+    /** The tiles of the first screen: the big card's three rows, or the two big cards and one row of six. */
+    static int firstScreen() {
+        return TWIN ? 8 : FIRST_SCREEN;
+    }
+
+    /** A big card: its logo and title are drawn larger. */
+    static boolean isBig(int position) {
+        return TWIN ? position < 2 : position == 0;
+    }
 
     interface FullRow {
         boolean isFullRow(int position);
@@ -59,6 +71,11 @@ final class MosaicLayoutManager extends RecyclerView.LayoutManager {
 
     /** {col, row, colSpan, rowSpan} of a tile in the pattern. */
     static int[] cell(int position) {
+        if (TWIN) {
+            if (position < 2) return new int[]{position * 3, 0, 3, 2};
+            int t = position - 2;
+            return new int[]{t % COLS, 2 + t / COLS, 1, 1};
+        }
         switch (position) {
             case 0: return new int[]{0, 0, 2, 2};
             case 1: return new int[]{2, 0, 2, 1};
@@ -182,7 +199,7 @@ final class MosaicLayoutManager extends RecyclerView.LayoutManager {
         // The first screen (the big tile's three rows) always shows from the top: coming back up from the extra
         // rows puts the mosaic back where it started instead of leaving it half scrolled under the clock.
         int pos = getPosition(child);
-        boolean firstScreen = pos >= 0 && pos < FIRST_SCREEN && (fullRow == null || !fullRow.isFullRow(pos));
+        boolean firstScreen = pos >= 0 && pos < firstScreen() && (fullRow == null || !fullRow.isFullRow(pos));
         if (firstScreen) dy = -(settling ? pendingScrollY : scrollY);
         if (dy == 0) return settling;
         int target = Math.max(0, Math.min((settling ? pendingScrollY : scrollY) + dy, maxScroll()));
