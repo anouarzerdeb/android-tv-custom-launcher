@@ -983,7 +983,20 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (CAROUSEL && !isLibraryAt(position) && holder instanceof Holder) {
             Holder h = (Holder) holder;
             float density = h.itemView.getResources().getDisplayMetrics().density;
-            float r = cornerRadius(Math.max(1, h.card.getLayoutParams().width), density);
+            // A big 16:9 card, a third of the screen wide; the loop scales the others down from this size
+            int cw = Math.round(h.itemView.getResources().getDisplayMetrics().widthPixels * 0.32f);
+            h.itemView.setPadding(0, 0, 0, 0);
+            ViewGroup.MarginLayoutParams cardLp = (ViewGroup.MarginLayoutParams) h.card.getLayoutParams();
+            cardLp.width = cw;
+            cardLp.height = cw * 9 / 16;
+            cardLp.setMargins(0, 0, 0, 0);
+            h.card.setLayoutParams(cardLp);
+            android.widget.FrameLayout.LayoutParams iconLp = (android.widget.FrameLayout.LayoutParams) h.icon.getLayoutParams();
+            iconLp.width = iconLp.height = Math.round(cw * 9 / 16f * 0.42f);
+            iconLp.gravity = android.view.Gravity.CENTER;
+            iconLp.setMargins(0, 0, 0, 0);
+            h.icon.setLayoutParams(iconLp);
+            float r = cornerRadius(cw, density);
             applyRing(h, position < items.size() ? items.get(position) : null, r, density);
             h.name.setVisibility(View.GONE);   // the big name above the row already says which app this is
         }

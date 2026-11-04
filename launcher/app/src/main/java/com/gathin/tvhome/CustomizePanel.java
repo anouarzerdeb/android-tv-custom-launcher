@@ -181,7 +181,8 @@ final class CustomizePanel {
 
         boolean mo = cfg.optBoolean("mosaic", false), sr = cfg.optBoolean("single_row", false);
         int lay = mo ? ("twin".equals(cfg.optString("mosaic_style", "")) ? 2 : 1)
-                : sr ? (cfg.optBoolean("carousel", false) ? 4 : 6)
+                : cfg.optBoolean("carousel", false) ? 4
+                : sr ? 6
                 : cfg.optBoolean("side_list", false) ? 5
                 : cfg.optBoolean("cinematic_home", false) && cfg.optBoolean("dock_row", true) ? 3
                 : !cfg.optBoolean("dock_row", true) ? 7 : 0;
@@ -365,20 +366,18 @@ final class CustomizePanel {
 
     /** Every layout sets all the keys that tell layouts apart, so switching never leaves one half on. */
     private static JSONObject layoutKeys(int i) {
-        boolean mosaic = i == 1 || i == 2, single = i == 4 || i == 6;
+        boolean mosaic = i == 1 || i == 2, single = i == 6;
         JSONObject k = ConfigWriter.keys("mosaic", mosaic, "mosaic_style", i == 2 ? "twin" : "classic",
                 "single_row", single, "carousel", i == 4, "side_list", i == 5,
-                "cinematic_home", i == 3, "dock_row", i != 5 && i != 7);
+                "cinematic_home", i == 3, "dock_row", i != 4 && i != 5 && i != 7);
         try {
             if (mosaic || i == 5) {   // icon cards with names read best in these
                 k.put("uniform_tiles", true);
                 k.put("always_show_names", true);
             }
-            if (i == 4) k.put("dock_band", false);   // carousel: the cards float, no band around the row
-            if (i == 3) {             // cinematic: the art shows through a lighter scrim, no band behind the dock
-                k.put("cinematic_scrim", 60);
-                k.put("dock_band", false);
-            }
+            // Cinematic: the art shows through a lighter scrim. The dock band stays the owner's choice (Dock row),
+            // so going back to another layout finds it as it was.
+            if (i == 3) k.put("cinematic_scrim", 60);
         } catch (org.json.JSONException ignored) {
         }
         return k;

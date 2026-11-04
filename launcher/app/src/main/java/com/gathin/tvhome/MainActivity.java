@@ -218,6 +218,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean mosaic;
     /** Theme key "carousel" with single_row: the focused tile sits in the middle, biggest (AppAdapter.CAROUSEL). */
     private boolean carousel;
+    private CarouselLayoutManager carouselLm;
     /** Theme key "side_list": the apps as a list on the left, the focused one previewed large on the right. */
     private boolean sideList;
     private View sidePanel;
@@ -505,15 +506,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dockRow = cfg.dockRow && !mosaic;
         singleRow = cfg.singleRow;
         MosaicLayoutManager.TWIN = mosaic && "twin".equals(mosaicCfg.optString("mosaic_style", ""));
-        carousel = singleRow && mosaicCfg != null && mosaicCfg.optBoolean("carousel", false);
-        sideList = !mosaic && !singleRow && mosaicCfg != null && mosaicCfg.optBoolean("side_list", false);
+        carousel = !mosaic && mosaicCfg != null && mosaicCfg.optBoolean("carousel", false);
+        sideList = !mosaic && !carousel && !singleRow && mosaicCfg != null && mosaicCfg.optBoolean("side_list", false);
+        if (carousel) {
+            singleRow = false;   // the loop places its own cards (CarouselLayoutManager)
+            dockRow = false;
+        }
         AppAdapter.CAROUSEL = carousel;
         AppAdapter.SIDE_LIST = sideList;
         if (sideList) {
             COLUMNS = 1;      // one column of rows
             dockRow = false;
         }
-        if (carousel) COLUMNS = 3;   // big cards: three fit across, the middle one grows
         focusOvershoot = cfg.focusOvershoot;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
@@ -683,6 +687,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             };
             grid.setLayoutManager(mlm);
         }
+        else if (carousel) grid.setLayoutManager(carouselLm = new CarouselLayoutManager(density,
+                p -> adapter != null && adapter.isLibraryAt(p)));
         else grid.setLayoutManager(new GridLayoutManager(this, singleRow ? 1 : COLUMNS,
                 singleRow ? RecyclerView.HORIZONTAL : RecyclerView.VERTICAL, false) {
             @Override
@@ -703,14 +709,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public boolean requestChildRectangleOnScreen(@NonNull RecyclerView parent, @NonNull View child,
                                                          @NonNull Rect rect, boolean immediate,
                                                          boolean focusedChildVisible) {
-                if (singleRow && carousel) {
-                    // Carousel: the focused tile always comes to the middle of the row
-                    int dx = (child.getLeft() + child.getRight()) / 2 - getWidth() / 2;
-                    if (dx == 0) return false;
-                    if (immediate || reducedMotion || !animations) parent.scrollBy(dx, 0);
-                    else parent.smoothScrollBy(dx, 0, new android.view.animation.DecelerateInterpolator(1.6f));
-                    return true;
-                }
                 if (singleRow) {
                     // Sideways: scroll just enough to bring the tile's cell inside the padding. Cells are a
                     // column wide, so the row moves a whole tile at a time and the tiles stay on the columns.
@@ -750,7 +748,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             });
         }
-        if (carousel) setUpCarousel();
         if (sideList) setUpSideList();
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
@@ -1952,6 +1949,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Rect r = tileRect;
         r.set(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
+        if (carousel && carouselLm != null) {
+            // Turn the loop to this card; its name goes in large letters just above the loop
+            carouselLm.setCenter(position, animations && !reducedMotion);
+            showHero(position, r.top + 56 * density);   // the name sits close above the loop
+            return;
+        }
         float pad = 6f * density;        // matches GlassView's glow inset
         float scale = adapter.focusScale();
         float w = card.getWidth() * scale + 2 * pad;
@@ -2588,6 +2591,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
+        // Carousel: Left and Right turn the loop (round past either end), Up to the top bar, Down to the pill
+        if (carousel) {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) return !adapter.isLibraryAt(adapter.appCount());
+            int n = adapter.appCount();
+            if (n == 0) return true;
+            int next = (position + (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : n - 1)) % n;
+            View item = grid.getLayoutManager() != null ? grid.getLayoutManager().findViewByPosition(next) : null;
+            View c = item != null ? item.findViewById(R.id.card) : null;
+            if (c != null) c.requestFocus();
+            return true;
+        }
         // Side list: one column; Left and Right have nowhere to go (the preview is not a tile)
         if (sideList && (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)) return true;
         // Mosaic rows hold different numbers of tiles: let the platform's geometric focus search move, but stop at
@@ -2788,6 +2803,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     @Override public void onLibraryUp() {
+        if (carousel) { focusTile(lastFocused); return; }
         if (adapter.appCount() == 0) { firstTopButton().requestFocus(); return; }
         int lastRow = ((adapter.appCount() - 1) / COLUMNS) * COLUMNS;
         focusTile(Math.min(lastRow + lastFocused % COLUMNS, adapter.appCount() - 1));
@@ -3243,50 +3259,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 break;
             default:
                 break;
-        }
-    }
-
-    /** Carousel: padding so the first and last tiles can reach the middle, and the scale that follows the scroll. */
-    private void setUpCarousel() {
-        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
-                scaleCarousel();
-            }
-        });
-        // Room before the first tile and after the last so both can reach the middle. An offset, not padding:
-        // the tiles' width comes from the row's inner width, and padding would shrink every tile made after it.
-        grid.addItemDecoration(new RecyclerView.ItemDecoration() {
-            @Override
-            public void getItemOffsets(@NonNull Rect out, @NonNull View view, @NonNull RecyclerView rv,
-                                       @NonNull RecyclerView.State state) {
-                int pos = rv.getChildAdapterPosition(view);
-                int count = state.getItemCount();
-                if (pos != 0 && pos != count - 1) return;
-                int cell = view.getLayoutParams() != null && view.getLayoutParams().width > 0
-                        ? view.getLayoutParams().width : rv.getWidth() / Math.max(1, COLUMNS);
-                int side = Math.max(0, rv.getWidth() / 2 - cell / 2 - rv.getPaddingLeft());
-                if (pos == 0) out.left = side;
-                if (pos == count - 1) out.right = side;
-            }
-        });
-        grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> scaleCarousel());
-    }
-
-    /** Each tile grows as it nears the middle: biggest there, smaller and fainter towards the edges. */
-    private void scaleCarousel() {
-        float mid = grid.getWidth() / 2f;
-        for (int i = 0; i < grid.getChildCount(); i++) {
-            View c = grid.getChildAt(i);
-            if (c.getWidth() == 0) continue;
-            float d = Math.min(1f, Math.abs((c.getLeft() + c.getRight()) / 2f - mid) / (c.getWidth() * 2.2f));
-            float s = 1.22f - 0.4f * d;
-            c.setPivotX(c.getWidth() / 2f);
-            c.setPivotY(c.getHeight() * 0.42f);
-            c.setScaleX(s);
-            c.setScaleY(s);
-            c.setAlpha(1f - 0.5f * d);
-            c.setTranslationZ(s * 4f);
         }
     }
 
