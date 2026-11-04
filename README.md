@@ -3,7 +3,7 @@
 A clean, customisable Home screen for **any Android TV or Google TV** box or television: no ads, no
 tracking, your own layout, and every option changeable from the remote in a live **Customize** sidebar.
 
-This is a fork of [CleanYourTV / tv-vibehack](https://github.com/Gathin23/cleanyourtv) by Gathin (MIT
+The app is called **Custom TV Home** (`com.anouarzerdeb.tvhome`). It is a fork of [CleanYourTV / tv-vibehack](https://github.com/Gathin23/cleanyourtv) by Gathin (MIT
 licence, kept in `LICENSE`). Everything below the line is the original project's guide and still applies.
 
 **What this fork adds** to the launcher (`launcher/`):

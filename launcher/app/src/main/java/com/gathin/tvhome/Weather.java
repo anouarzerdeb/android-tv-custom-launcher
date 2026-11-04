@@ -32,7 +32,22 @@ final class Weather {
     private Weather() {}
 
     static boolean enabled(Context ctx) {
+        fromConfig(ctx);
         return !prefs(ctx).getString(NAME, "").isEmpty();
+    }
+
+    /**
+     * Theme keys "weather_city", "weather_lat" and "weather_lon": a city set in config.json, so it survives a
+     * reinstall (the on-TV choice lives in this app's own storage). Used only while none is chosen on the TV.
+     */
+    private static void fromConfig(Context ctx) {
+        if (!prefs(ctx).getString(NAME, "").isEmpty()) return;
+        org.json.JSONObject cfg = Config.overlay(ctx);
+        if (cfg == null) return;
+        String name = cfg.optString("weather_city", ""), lat = cfg.optString("weather_lat", ""),
+                lon = cfg.optString("weather_lon", "");
+        if (name.isEmpty() || lat.isEmpty() || lon.isEmpty()) return;
+        prefs(ctx).edit().putString(NAME, name).putString(LAT, lat).putString(LON, lon).apply();
     }
 
     static String city(Context ctx) {

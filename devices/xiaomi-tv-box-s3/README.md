@@ -12,7 +12,7 @@ Google TV devices work the same way; only `debloat.txt` is specific to this mode
 
 ## What you get
 
-- **Clean Home**: the custom launcher (`launcher/`) as Home, with the Google TV home, PatchWall, ads and
+- **Clean Home**: the custom launcher **Custom TV Home** (`launcher/`, app id `com.anouarzerdeb.tvhome`) as Home, with the Google TV home, PatchWall, ads and
   telemetry switched off (disabled, never uninstalled, so everything can be undone).
 - **Customize sidebar** (the brush button, top right): every option changes Home live behind it.
   - Layouts: Mosaic, Dock + grid, Single row, Grid; each shows only the settings that apply to it.
@@ -49,24 +49,26 @@ You need a PC with [Android platform-tools](https://developer.android.com/tools/
    $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
    .\gradlew.bat assembleRelease
    adb install -r app\build\outputs\apk\release\app-release.apk
-   adb shell cmd package set-home-activity com.gathin.tvhome/.MainActivity
+   adb shell cmd package set-home-activity com.anouarzerdeb.tvhome/com.gathin.tvhome.MainActivity
    ```
    Press Home on the remote and choose the new launcher if asked.
 5. **Give it its permissions** (accessibility helper for the remote buttons, screensaver choice, screensaver delay):
    ```
-   adb shell pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS
-   adb shell appops set com.gathin.tvhome WRITE_SETTINGS allow
-   adb shell settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService
+   adb shell pm grant com.anouarzerdeb.tvhome android.permission.WRITE_SECURE_SETTINGS
+   adb shell appops set com.anouarzerdeb.tvhome WRITE_SETTINGS allow
+   adb shell appops set com.anouarzerdeb.tvhome ACCESS_RESTRICTED_SETTINGS allow
+   adb shell settings put secure enabled_accessibility_services com.anouarzerdeb.tvhome/com.gathin.tvhome.HomeKeyService
    adb shell settings put secure accessibility_enabled 1
    ```
 6. **Push the theme** (open Home once first so its folder exists):
    ```
-   adb push theme/config.json /sdcard/Android/data/com.gathin.tvhome/files/config.json
-   adb shell mkdir -p /sdcard/Android/data/com.gathin.tvhome/files/themes
-   adb push theme/presets/. /sdcard/Android/data/com.gathin.tvhome/files/themes/
+   adb push theme/config.json /sdcard/Android/data/com.anouarzerdeb.tvhome/files/config.json
+   adb shell mkdir -p /sdcard/Android/data/com.anouarzerdeb.tvhome/files/themes
+   adb push theme/presets/. /sdcard/Android/data/com.anouarzerdeb.tvhome/files/themes/
    ```
    Put your own pictures in `.../files/wallpapers/` and videos (MP4) in `.../files/videos/`.
-   Edit `theme/config.json` first: `dock_apps`, `app_keys`, `hidden_apps` and `top_bar_apps` name packages
+   To show the weather, add `"weather_city": "Berlin", "weather_lat": "52.52", "weather_lon": "13.405"`
+   (your city) or pick the city later in Customize. Edit `theme/config.json` first: `dock_apps`, `app_keys`, `hidden_apps` and `top_bar_apps` name packages
    from this box; change them to the apps on yours.
 7. **Debloat in small batches** with `debloat.txt`, one package per command, checking the TV between
    batches:

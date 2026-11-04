@@ -322,7 +322,8 @@ final class CustomizePanel {
      */
     private void screensaverRow(LinearLayout column) {
         android.content.ContentResolver cr = activity.getContentResolver();
-        String ours = activity.getPackageName() + "/.ClockDream";
+        // Full class name: the app id (com.anouarzerdeb.tvhome) differs from the code's package
+        String ours = new android.content.ComponentName(activity, ClockDream.class).flattenToString();
         boolean aerial;
         try {
             activity.getPackageManager().getPackageInfo("com.neilturner.aerialviews", 0);
