@@ -51,6 +51,10 @@ Click **Settings** for the TV's own settings. Hold OK on it for its menu:
 The launcher's own page has these rows, top to bottom:
 
 - **Reorder apps**, only with `launcher_settings_button`, the same as the menu's.
+- **Layout**: Dock + grid, Mosaic, Single row or Grid. The Customize sidebar shows only the rows that
+  apply to the chosen layout.
+- **Weather on Home**: type a city to show its weather under the clock, with an animated icon
+  (`weather_icon`), or turn it off.
 - **Apps per row** 4, 5, 6 or 7; **Rows below dock** 0 to 3, how many rows of tiles stay visible under the
   dock band; **Dock band opacity** 100%, 70%, 50% or 30%. The last two only do anything while the dock is
   its own row (`dock_row`, on by default).

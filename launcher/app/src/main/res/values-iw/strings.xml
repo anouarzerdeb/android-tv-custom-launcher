@@ -152,4 +152,24 @@
     <string name="clock_format_system">מערכת</string>
     <string name="clock_format_12">12 שעות</string>
     <string name="clock_format_24">24 שעות</string>
+    <string name="launcher_button_short">התאמה אישית</string>
+    <string name="layout_label">פריסה</string>
+    <string name="layout_state">פריסה: %1$s</string>
+    <string name="preview_missing">אין עדיין תצוגה מקדימה</string>
+    <string name="screensaver_label">שומר מסך</string>
+    <string name="screensaver_state">שומר מסך: %1$s</string>
+    <string name="theme_applied">ערכת הנושא הוחלה</string>
+    <string name="theme_label">ערכת נושא</string>
+    <string name="theme_missing">אין עדיין ערכות נושא בטלוויזיה</string>
+    <string name="theme_none">מותאם אישית</string>
+    <string name="theme_state">ערכת נושא: %1$s</string>
+    <string name="tools_label">כלים</string>
+    <string name="tools_none">לא מותקנים כלים</string>
+    <string name="tools_state">כלים: מזג אוויר, טיימר שינה, Bluetooth, בהירות ועוד</string>
+    <string name="weather_hint">הקלידו את העיר שלכם</string>
+    <string name="weather_label">מזג אוויר במסך הבית</string>
+    <string name="weather_none_found">לא נמצאה עיר</string>
+    <string name="weather_off">כבוי</string>
+    <string name="weather_searching">מחפש…</string>
+    <string name="weather_state">מזג אוויר במסך הבית: %1$s</string>
 </resources>

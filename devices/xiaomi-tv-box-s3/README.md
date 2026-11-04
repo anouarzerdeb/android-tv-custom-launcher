@@ -61,12 +61,12 @@ You need a PC with [Android platform-tools](https://developer.android.com/tools/
    ```
 6. **Push the theme** (open Home once first so its folder exists):
    ```
-   adb push config.json /sdcard/Android/data/com.gathin.tvhome/files/config.json
+   adb push theme/config.json /sdcard/Android/data/com.gathin.tvhome/files/config.json
    adb shell mkdir -p /sdcard/Android/data/com.gathin.tvhome/files/themes
-   adb push themes/. /sdcard/Android/data/com.gathin.tvhome/files/themes/
+   adb push theme/presets/. /sdcard/Android/data/com.gathin.tvhome/files/themes/
    ```
    Put your own pictures in `.../files/wallpapers/` and videos (MP4) in `.../files/videos/`.
-   Edit `config.json` first: `dock_apps`, `app_keys`, `hidden_apps` and `top_bar_apps` name packages
+   Edit `theme/config.json` first: `dock_apps`, `app_keys`, `hidden_apps` and `top_bar_apps` name packages
    from this box; change them to the apps on yours.
 7. **Debloat in small batches** with `debloat.txt`, one package per command, checking the TV between
    batches:
