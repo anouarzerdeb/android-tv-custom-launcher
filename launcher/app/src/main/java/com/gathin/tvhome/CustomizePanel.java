@@ -276,6 +276,9 @@ final class CustomizePanel {
                             : ConfigWriter.keys("animations", true, "focus_overshoot", i == 0, "advanced_effects", i == 0)));
         }
         screensaverRow(column);
+        column.addView(row("Box volume", new String[]{"Free", "Always full"},
+                cfg.optBoolean("full_box_volume", false) ? 1 : 0,
+                i -> ConfigWriter.keys("full_box_volume", i == 1)));
         if (android.provider.Settings.System.canWrite(activity)) {
             // How long the TV waits before the screensaver comes on (the system's own timeout)
             int[] mins = {5, 10, 15, 30, 60};

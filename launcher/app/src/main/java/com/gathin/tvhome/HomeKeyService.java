@@ -84,6 +84,8 @@ public class HomeKeyService extends AccessibilityService {
     private boolean powerOnAlways;
     /** power_on_home: re-arms after the screen turns on; null unless the key is on. */
     private BroadcastReceiver screenOnReceiver;
+    /** full_box_volume: puts the box's media volume back to full whenever something lowers it. */
+    private BroadcastReceiver volumeReceiver;
     /** Stops key filtering while a game controller is connected; null unless gamepad_passthrough and key_filter, or before the unlock. */
     private GamepadPassthrough gamepads;
     /** Screen-off receiver while guard_off_in_standby is set; null otherwise. */
@@ -141,6 +143,8 @@ public class HomeKeyService extends AccessibilityService {
         RemoteKeys.release(this);
         stopWaitingForUnlock();
         if (screenOnReceiver != null) unregisterReceiver(screenOnReceiver);
+        if (volumeReceiver != null) unregisterReceiver(volumeReceiver);
+        handler.removeCallbacks(fullBoxVolume);
         if (standbyExit != null) {
             try {
                 unregisterReceiver(standbyExit);
@@ -221,6 +225,7 @@ public class HomeKeyService extends AccessibilityService {
             screenOnReceiver = null;
             powerOnUntil = 0;
         }
+        updateFullVolume();
         // home_key_service.xml subscribes to no events, so the redirects ask for window changes only when one is on.
         AccessibilityServiceInfo info = getServiceInfo();
         if (info != null && (!stockHome.isEmpty() || !powerOnLiveTv.isEmpty() || watchFront)) {
@@ -343,6 +348,46 @@ public class HomeKeyService extends AccessibilityService {
         };
         registerReceiver(screenOnReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
     }
+
+    /** Home calls this after a Customize change, so the Box volume row works without rebinding the helper. */
+    static void refreshFullVolume() {
+        HomeKeyService s = running;
+        if (s != null) s.handler.post(s::updateFullVolume);
+    }
+
+    private void updateFullVolume() {
+        // full_box_volume: the TV's remote sets the loudness; the box itself stays at full so it never sends quiet sound
+        org.json.JSONObject overlay = Config.overlay(this);
+        boolean fullVolume = overlay != null && overlay.optBoolean("full_box_volume", false);
+        if (fullVolume && volumeReceiver == null) {
+            volumeReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent.getIntExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", -1) == android.media.AudioManager.STREAM_MUSIC) {
+                        handler.removeCallbacks(fullBoxVolume);
+                        handler.postDelayed(fullBoxVolume, 400L);
+                    }
+                }
+            };
+            registerReceiver(volumeReceiver, new IntentFilter("android.media.VOLUME_CHANGED_ACTION"));
+            handler.post(fullBoxVolume);
+        } else if (!fullVolume && volumeReceiver != null) {
+            unregisterReceiver(volumeReceiver);
+            volumeReceiver = null;
+        }
+    }
+
+    private final Runnable fullBoxVolume = () -> {
+        android.media.AudioManager am = getSystemService(android.media.AudioManager.class);
+        if (am == null) return;
+        int max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+        if (am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) >= max) return;
+        try {
+            am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, max, 0);   // silently, no volume bar
+        } catch (SecurityException e) {
+            android.util.Log.w("TvHome.HomeKey", "Cannot set the box volume", e);   // Do Not Disturb, for one
+        }
+    };
 
     /** power_on_home_always: after the firmware has brought its last source back (Philips: within 0.5 s). */
     static final long POWER_ON_ALWAYS_DELAY_MS = 800L;

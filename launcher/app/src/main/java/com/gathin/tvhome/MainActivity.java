@@ -480,6 +480,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         homeAppKeys = RemoteKeys.parseAppKeys(cfg.appKeys);
         clockFormat = cfg.clockFormat;
         ClockFormat.apply(getWindow().getDecorView(), clockFormat);
+        HomeKeyService.refreshFullVolume();   // Box volume (full_box_volume) follows Customize right away
         applyClockStyle();
         homeHoldAppKeys = RemoteKeys.parseHoldAppKeys(cfg.appKeys);
         appLibrarySelection = cfg.appLibrarySelection;
