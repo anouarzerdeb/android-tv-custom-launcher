@@ -30,6 +30,8 @@ final class CarouselLayoutManager extends RecyclerView.LayoutManager {
     private final float density;
     private final Pill pill;
     private int center;
+    /** Until when the last turn animates: a layout in that time re-aims it instead of snapping it. */
+    private long turningUntil;
 
     CarouselLayoutManager(float density, Pill pill) {
         this.density = density;
@@ -59,7 +61,7 @@ final class CarouselLayoutManager extends RecyclerView.LayoutManager {
                     : getPaddingTop() + (h - vh) / 2 - Math.round(10 * density);  // a little above the middle
             layoutDecorated(v, left, top, left + vw, top + vh);
         }
-        place(false);
+        place(android.os.SystemClock.uptimeMillis() < turningUntil);
     }
 
     /** Turns the loop so {@code position} is in the middle. */
@@ -70,6 +72,7 @@ final class CarouselLayoutManager extends RecyclerView.LayoutManager {
             return;
         }
         center = position;
+        if (animate) turningUntil = android.os.SystemClock.uptimeMillis() + 320;
         place(animate);
     }
 

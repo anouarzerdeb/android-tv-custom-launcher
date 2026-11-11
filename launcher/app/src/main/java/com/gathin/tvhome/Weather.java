@@ -25,6 +25,8 @@ final class Weather {
     static final String NAME = "weather_name", LAT = "weather_lat", LON = "weather_lon";
     private static final long FRESH_MS = 30 * 60_000L, RETRY_MS = 60_000L;
     private static final String LAST = "weather_last";
+    /** Weather turned off on the TV: the city in config.json is not brought back. */
+    private static final String OFF = "weather_off";
 
     private static String cached = "";
     private static long fetchedAt, failedAt;
@@ -41,7 +43,7 @@ final class Weather {
      * reinstall (the on-TV choice lives in this app's own storage). Used only while none is chosen on the TV.
      */
     private static void fromConfig(Context ctx) {
-        if (!prefs(ctx).getString(NAME, "").isEmpty()) return;
+        if (!prefs(ctx).getString(NAME, "").isEmpty() || prefs(ctx).getBoolean(OFF, false)) return;
         org.json.JSONObject cfg = Config.overlay(ctx);
         if (cfg == null) return;
         String name = cfg.optString("weather_city", ""), lat = cfg.optString("weather_lat", ""),
@@ -55,13 +57,13 @@ final class Weather {
     }
 
     static void set(Context ctx, Place p) {
-        prefs(ctx).edit().putString(NAME, p.name).putString(LAT, p.lat).putString(LON, p.lon).apply();
+        prefs(ctx).edit().putString(NAME, p.name).putString(LAT, p.lat).putString(LON, p.lon).remove(OFF).apply();
         cached = "";
         fetchedAt = failedAt = 0;
     }
 
     static void clear(Context ctx) {
-        prefs(ctx).edit().remove(NAME).remove(LAT).remove(LON).apply();
+        prefs(ctx).edit().remove(NAME).remove(LAT).remove(LON).putBoolean(OFF, true).apply();   // config's city stays out
         cached = "";
     }
 

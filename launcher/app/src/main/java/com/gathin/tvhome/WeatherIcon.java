@@ -20,6 +20,9 @@ import app.rive.runtime.kotlin.core.Rive;
 final class WeatherIcon {
     private final RiveAnimationView view;
     private String artboard = "";
+    /** Animating redraws Home every frame; a few seconds of motion, then the icon rests (a 1-2 GB box). */
+    private static final long PLAY_MS = 6000L;
+    private final Runnable rest = this::pause;
 
     private WeatherIcon(RiveAnimationView view) {
         this.view = view;
@@ -61,7 +64,7 @@ final class WeatherIcon {
         }
     }
 
-    /** Shows the artboard for the condition in a weather line such as "Berlin  9° Cloudy". */
+    /** Shows the artboard for the condition in a weather line such as "Wuppertal  9° Cloudy". */
     void show(String weatherLine) {
         String next = artboardFor(weatherLine);
         if (next == null) {
@@ -74,6 +77,8 @@ final class WeatherIcon {
         try {
             view.setRiveResource(R.raw.weather_icons, next, null, "State Machine 1", true,
                     Fit.CONTAIN, Alignment.CENTER, Loop.AUTO);
+            view.removeCallbacks(rest);
+            view.postDelayed(rest, PLAY_MS);
         } catch (Throwable t) {
             Log.w("TvHome.WeatherIcon", "Cannot show " + next, t);
             view.setVisibility(View.GONE);
@@ -90,11 +95,16 @@ final class WeatherIcon {
     }
 
     void pause() {
+        view.removeCallbacks(rest);
         view.pause();
     }
 
     void resume() {
-        if (view.getVisibility() == View.VISIBLE && !artboard.isEmpty()) view.play(Loop.AUTO, app.rive.runtime.kotlin.core.Direction.AUTO, true);
+        if (view.getVisibility() == View.VISIBLE && !artboard.isEmpty()) {
+            view.play(Loop.AUTO, app.rive.runtime.kotlin.core.Direction.AUTO, true);
+            view.removeCallbacks(rest);
+            view.postDelayed(rest, PLAY_MS);
+        }
     }
 
     static void detach(WeatherIcon icon) {

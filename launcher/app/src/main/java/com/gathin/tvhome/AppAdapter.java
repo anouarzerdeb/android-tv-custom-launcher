@@ -1181,6 +1181,20 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 }
             });
             card.setClipToOutline(true);
+            card.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+                @Override
+                public void onViewAttachedToWindow(@NonNull View v) {
+                }
+
+                @Override
+                public void onViewDetachedFromWindow(@NonNull View v) {
+                    if (pulse != null) {
+                        pulse.cancel();
+                        pulse = null;
+                    }
+                    if (shine != null) shine.animate().cancel();
+                }
+            });
             if (card instanceof FrameLayout) {
                 // focus_effect "shine": a soft band, made once here and only ever moved and faded, so focusing a
                 // tile never adds a view (which would lay the whole mosaic out again and nudge it)

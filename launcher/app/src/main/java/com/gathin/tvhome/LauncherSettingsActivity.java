@@ -133,9 +133,9 @@ public final class LauncherSettingsActivity extends Activity {
             reverseRow(clockChoices);
         }
         themeChoice = findViewById(R.id.themeChoice);
-        themeChoice.setOnClickListener(v -> openPicker(PreviewPickerActivity.MODE_THEME));
+        themeChoice.setOnClickListener(v -> showThemePicker());
         layoutChoice = findViewById(R.id.layoutChoice);
-        layoutChoice.setOnClickListener(v -> openPicker(PreviewPickerActivity.MODE_LAYOUT));
+        layoutChoice.setOnClickListener(v -> showLayoutPicker());
         screensaverChoice = findViewById(R.id.screensaverChoice);
         screensaverChoice.setOnClickListener(v -> showScreensaverPicker());
         weatherChoice = findViewById(R.id.weatherChoice);
@@ -292,27 +292,18 @@ public final class LauncherSettingsActivity extends Activity {
 
     // ---- Layout, screensaver, weather and tools (owner additions) ---------------------------------------------
 
-    private static final int PICKER_REQUEST = 7;
+    // Home stays live (video, weather, stats) only while this sidebar is actually on screen. An app or TV setting
+    // opened from here stops the sidebar without destroying it, so Home must let go then, not at onDestroy.
+    @Override
+    protected void onStart() {
+        super.onStart();
+        MainActivity.sidebarShown();
+    }
 
     @Override
-    protected void onDestroy() {
+    protected void onStop() {
         MainActivity.sidebarClosed();
-        super.onDestroy();
-    }
-
-    /** Theme and Layout open a sidebar picker that shows Home with the focused option before it is applied. */
-    private void openPicker(String mode) {
-        startActivityForResult(new Intent(this, PreviewPickerActivity.class)
-                .putExtra(PreviewPickerActivity.EXTRA_MODE, mode), PICKER_REQUEST);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICKER_REQUEST && resultCode == RESULT_OK) {
-            changed();
-            refresh();
-        }
+        super.onStop();
     }
 
     private static final String LAYOUT_KEY = "layout_choice", SCREENSAVER_KEY = "screensaver_choice";
@@ -556,13 +547,6 @@ public final class LauncherSettingsActivity extends Activity {
         choices.edit().putLong(Config.SETTINGS_REVISION_KEY,
                 choices.getLong(Config.SETTINGS_REVISION_KEY, 0) + 1).commit();
         MainActivity.rebuildLive();   // Home behind the sidebar shows the change right away
-    }
-
-    @Override
-    public boolean dispatchKeyEvent(android.view.KeyEvent event) {
-        // The first key after a change only brings the faded sidebar back.
-        if (event.getAction() == android.view.KeyEvent.ACTION_DOWN && SettingsRedesign.restoreIfFaded()) return true;
-        return super.dispatchKeyEvent(event);
     }
 
     private void setAdvanced(boolean enabled) {

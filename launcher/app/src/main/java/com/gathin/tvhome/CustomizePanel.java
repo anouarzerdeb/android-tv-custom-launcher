@@ -32,6 +32,8 @@ final class CustomizePanel {
     private static final int PANEL = 0xF40E1320, ROW = 0x1FFFFFFF, ROW_FOCUS = 0xF2F1F4F8;
     private static final int TEXT = 0xFFF1F4F8, MUTED = 0xFF98A2B3, DARK = 0xFF0E1320, ACCENT = 0xFF34D399;
     private static final long APPLY_DELAY_MS = 350;
+    /** The design preset in use (on-TV preference); empty while the owner's own mix is in use. */
+    static final String THEME_KEY = "theme_preset";
 
     private interface Write {
         JSONObject keys(int index);
@@ -124,7 +126,7 @@ final class CustomizePanel {
         String[] designs = new String[themes.size() + 1];
         designs[0] = "Custom";
         int design = 0;
-        String current = choices.getString(PreviewPickerActivity.THEME_KEY, "");
+        String current = choices.getString(THEME_KEY, "");
         for (int i = 0; i < themes.size(); i++) {
             designs[i + 1] = ConfigWriter.themeTitle(themes.get(i).getName());
             if (themes.get(i).getName().equals(current)) design = i + 1;
@@ -132,14 +134,14 @@ final class CustomizePanel {
         column.addView(row("Design", designs, design, i -> {
             if (i == 0) {
                 // Back to Custom: the owner's own mix exactly as it was before the first design was tried
-                choices.edit().remove(PreviewPickerActivity.THEME_KEY).commit();
+                choices.edit().remove(THEME_KEY).commit();
                 ConfigWriter.restoreCustom(activity);
                 return null;
             }
             // Leaving Custom: keep that mix, so trying designs can never lose it
-            if (choices.getString(PreviewPickerActivity.THEME_KEY, "").isEmpty()) ConfigWriter.saveCustom(activity);
+            if (choices.getString(THEME_KEY, "").isEmpty()) ConfigWriter.saveCustom(activity);
             File f = themes.get(i - 1);
-            choices.edit().putString(PreviewPickerActivity.THEME_KEY, f.getName()).commit();
+            choices.edit().putString(THEME_KEY, f.getName()).commit();
             ConfigWriter.applyThemeKeys(activity, f);
             return null;
         }));
@@ -347,9 +349,9 @@ final class CustomizePanel {
         java.util.Collections.addAll(names, "Live video", "Photos", "Clock only");
         int first = aerial ? 1 : 0;
         int at = aerial && !isOurs ? 0 : first + clock;
+        if (!canSet) return;   // without WRITE_SECURE_SETTINGS the row could not change anything
         final boolean hasAerial = aerial;
         column.addView(row("Screensaver", names.toArray(new String[0]), at, i -> {
-            if (!canSet) return null;
             try {
                 android.provider.Settings.Secure.putString(cr, "screensaver_components",
                         hasAerial && i == 0 ? AERIAL_DREAM : ours);
@@ -466,7 +468,7 @@ final class CustomizePanel {
             JSONObject keys = write.keys(index[0]);
             if (keys != null) ConfigWriter.patch(activity, keys);
             if (keys != null && !"Design".equals(label)) {
-                choices.edit().remove(PreviewPickerActivity.THEME_KEY).apply();   // now a custom mix
+                choices.edit().remove(THEME_KEY).apply();   // now a custom mix
             }
             if (keys == null && !"Design".equals(label)) return true;   // a TV setting only: Home has nothing to redo
             handler.post(this::refresh);   // show/hide dependent rows

@@ -1287,6 +1287,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         a.recreate();
     };
 
+    /** The sidebar is on screen again (back from an app opened from it): a paused Home behind it comes back live. */
+    static void sidebarShown() {
+        sidebarOpen = true;
+        MainActivity a = live.get();
+        if (a != null && !a.resumed) a.runOnUiThread(() -> {
+            if (a.videoLayer != null) a.videoLayer.start();
+            if (a.showStats || a.weatherOn) a.startStats();
+        });
+    }
+
     /** The sidebar closed: a paused Home lets go of the video decoder again. */
     static void sidebarClosed() {
         sidebarOpen = false;

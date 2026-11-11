@@ -137,6 +137,10 @@ use it and ends with the check to run.
 
 ## Hard rules
 
+> **This fork (Custom TV Home) differs on purpose:** its launcher uses the network for the weather line
+> (`INTERNET`), plays video backgrounds, bundles rive-android for the weather icon, and has a 10 MB APK limit.
+> The rules below still apply to anything sent back to the original CleanYourTV project.
+
 Never do these in a PR:
 
 - **No prebuilt APKs or binaries** in the repo, not even as CI artifacts. People build from source.

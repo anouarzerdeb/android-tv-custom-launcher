@@ -109,10 +109,14 @@ final class ConfigWriter {
         File dir = Config.dir(ctx);
         JSONObject json = Config.overlay(ctx);
         if (dir == null || json == null) return;
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(dir, CUSTOM_BACKUP)), StandardCharsets.UTF_8)) {
+        File tmp = new File(dir, CUSTOM_BACKUP + ".tmp");
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(tmp), StandardCharsets.UTF_8)) {
             w.write(json.toString(2));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            return;
         }
+        File backup = new File(dir, CUSTOM_BACKUP);   // a power cut never leaves half a backup
+        if (!tmp.renameTo(backup) && backup.delete()) tmp.renameTo(backup);
     }
 
     /** Design back to "Custom": config.json becomes exactly the mix saveCustom kept; false when there is none. */
@@ -121,6 +125,14 @@ final class ConfigWriter {
         if (dir == null) return false;
         File backup = new File(dir, CUSTOM_BACKUP);
         if (!backup.isFile()) return false;
+        try (InputStream in = new FileInputStream(backup)) {   // a damaged backup must not replace a good config
+            byte[] all = new byte[(int) Math.min(backup.length(), 256 * 1024)];
+            int n = 0, r;
+            while (n < all.length && (r = in.read(all, n, all.length - n)) > 0) n += r;
+            new JSONObject(new String(all, 0, n, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            return false;
+        }
         try {
             File tmp = new File(dir, Config.FILE_NAME + ".tmp");
             try (InputStream in = new FileInputStream(backup);
